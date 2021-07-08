@@ -1,0 +1,16 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+C:/Users/Barbieri/Documents/GitHub/PFAPI21_Barbieri_10684602/main.c
+stdio.h
+-
+stdlib.h
+-
+string.h
+-
+

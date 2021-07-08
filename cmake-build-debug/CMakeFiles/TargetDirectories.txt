@@ -1,0 +1,3 @@
+C:/Users/Barbieri/Documents/GitHub/PFAPI21_Barbieri_10684602/cmake-build-debug/CMakeFiles/PFAPI21_Barbieri_10684602.dir
+C:/Users/Barbieri/Documents/GitHub/PFAPI21_Barbieri_10684602/cmake-build-debug/CMakeFiles/edit_cache.dir
+C:/Users/Barbieri/Documents/GitHub/PFAPI21_Barbieri_10684602/cmake-build-debug/CMakeFiles/rebuild_cache.dir
