@@ -2,13 +2,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef int** graph_t;
+typedef int **graph_t;
+typedef int *line_t;
 
 void init_parameters(int *d, int *k);
 graph_t create_graph(int n);
-graph_t set_matrix_values(graph_t graph, int n);
-void insert_matrix_line(int **line_p, int n);
-void print_matrix(int** matrix, int n);
+line_t set_matrix_line(int n);
+void print_matrix(int **matrix, int n);
 int manage_operation(int n, int k);
 
 int main(){
@@ -19,44 +19,36 @@ int main(){
 }
 
 void init_parameters(int *d, int *k){
-    char* line = NULL;
+    char *line = NULL;
     size_t line_length = 0;
     getline(&line, &line_length, stdin);
-    *d = strtol(line, &line, 10);
-    *k = strtol(line, &line, 10);
+    *d = (int)strtol(line, &line, 10);
+    *k = (int)strtol(line, &line, 10);
     free(line);
 }
 
 graph_t create_graph(int n){
-    graph_t graph_p = malloc(n*sizeof(int*));
-    for(int i = 0; i < n; i++){
-        int* line_p = malloc(n*sizeof(int));
-        *(graph_p + i) = line_p;
-    }
-
-    return set_matrix_values(graph_p, n);
-}
-
-graph_t set_matrix_values(graph_t graph_p, int n){
+    graph_t graph_p = malloc(n * sizeof(int*));
     for(int i = 0; i < n; i++)
-        insert_matrix_line((graph_p + i), n);
-
+        *(graph_p + i) = set_matrix_line(n);
     return graph_p;
 }
 
-void insert_matrix_line(int **line_p, int n){
-    char* line = NULL;
+line_t set_matrix_line(int n){
+    char *input_line = NULL;
     size_t length = 0;
-    getline(&line, &length, stdin);
+    getline(&input_line, &length, stdin);
+
+    line_t line_p = malloc(n * sizeof(int));
 
     int token_count = 0;
     //le linee sono stringhe di interi suddivisi dal carattere "," e finiscono con "\n" che tratto come separatore
-    char* delimiters = ",\n";
+    char *delimiters = ",\n";
     //legge la prima stringa di interi (token) della linea
-    char* token = strtok(line, delimiters);
+    char *token = strtok(input_line, delimiters);
     while(token != NULL){
         //e fa un parse da string a int
-        *(*line_p + token_count) = (int)strtol(token, NULL, 10);
+        *(line_p + token_count) = (int)strtol(token, NULL, 10);
         token_count++;
         //TODO controllo errori
         //mi aspetto che element contenga una stringa di numeri, se la stringa è vuota allora c'è un errore.
@@ -66,10 +58,11 @@ void insert_matrix_line(int **line_p, int n){
         //legge il token successivo
         token = strtok(NULL, delimiters);
     }
-    free(line);
+    free(input_line);
+    return line_p;
 }
 
-void print_matrix(int** matrix, int n){
+void print_matrix(int **matrix, int n){
     for(int i = 0; i < n; i++) {
         for(int j = 0; j < n; j++)
             printf("%d ", *(*(matrix + i) + j));
@@ -78,7 +71,7 @@ void print_matrix(int** matrix, int n){
 }
 
 int manage_operation(int n, int k){
-    char* line = NULL;
+    char *line = NULL;
     size_t line_length = 0;
     getline(&line, &line_length, stdin);
 
