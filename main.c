@@ -2,13 +2,16 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef int **graph_t;
+typedef struct{
+    int **data;
+    int n;
+}graph_t;
 typedef int *line_t;
 
 void init_parameters(int *d, int *k);
 graph_t create_graph(int n);
-line_t set_matrix_line(int n);
-void print_matrix(int **matrix, int n);
+line_t insert_graph_line(int n);
+void print_graph(graph_t graph);
 int manage_operation(int n, int k);
 
 int main(){
@@ -28,13 +31,15 @@ void init_parameters(int *d, int *k){
 }
 
 graph_t create_graph(int n){
-    graph_t graph_p = malloc(n * sizeof(int*));
+    graph_t graph;
+    graph.n = n;
+    graph.data = malloc(n * sizeof(int*));
     for(int i = 0; i < n; i++)
-        *(graph_p + i) = set_matrix_line(n);
-    return graph_p;
+        *(graph.data + i) = insert_graph_line(n);
+    return graph;
 }
 
-line_t set_matrix_line(int n){
+line_t insert_graph_line(int n){
     char *input_line = NULL;
     size_t length = 0;
     getline(&input_line, &length, stdin);
@@ -62,10 +67,11 @@ line_t set_matrix_line(int n){
     return line_p;
 }
 
-void print_matrix(int **matrix, int n){
+void print_graph(graph_t graph){
+    int n = graph.n;
     for(int i = 0; i < n; i++) {
         for(int j = 0; j < n; j++)
-            printf("%d ", *(*(matrix + i) + j));
+            printf("%d ", *(*(graph.data + i) + j));
         printf("\n");
     }
 }
@@ -77,7 +83,7 @@ int manage_operation(int n, int k){
 
     if(strcmp(line, "AggiungiGrafo\n") == 0) {
         graph_t graph = create_graph(n);
-        print_matrix(graph, n);
+        print_graph(graph);
         free(line);
         return 0;
     }
