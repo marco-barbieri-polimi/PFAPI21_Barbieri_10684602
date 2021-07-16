@@ -27,9 +27,21 @@ typedef struct{
     int heap_size;
 }heap_t;
 
+//struttura lista (per la classifica dei grafi)
+typedef struct node{
+    int graph_id;
+    unsigned int metric;
+    struct node *next;
+}list_node_t;
+
+typedef struct{
+    int cur_id;
+    list_node_t *head;
+}list_t;
+
 //gestione dell'input
 void init_parameters(int *d, int *k);
-int manage_operation(int n, int k);
+int manage_operation(int n, int k, list_t *list);
 //gestione dei grafi
 graph_t create_graph(int n);
 line_t insert_graph_line(int n);
@@ -42,11 +54,21 @@ void min_heap_insert(heap_t *heap, int v, unsigned int dist);
 void min_heapify(heap_t* heap, int i);
 heap_node_t heap_extract_min(heap_t *heap);
 void heap_decrease_key(heap_t *heap, int v, unsigned int dist);
+//gestione della lista
+void list_inorder_insert(list_t *list, list_node_t *node);
 
 int main(){
     int d, k;
     init_parameters(&d, &k);
-    while(manage_operation(d, k) == 0);
+
+    list_t list;
+    list.cur_id = 1;
+    list.head = NULL;
+
+    int val = 0;
+    while(val == 0)
+        val = manage_operation(d, k, &list);
+
     return 0;
 }
 
@@ -58,7 +80,7 @@ void init_parameters(int *d, int *k){
     *k = (int)strtol(line, &line, 10);
     free(line);
 }
-int manage_operation(int n, int k){
+int manage_operation(int n, int k, list_t* list){
     char *line = NULL;
     size_t line_length = 0;
     getline(&line, &line_length, stdin);
@@ -71,16 +93,19 @@ int manage_operation(int n, int k){
         for(int i = 0; i < n; i++)
             sum += dist[i];
 
+        list_node_t *node = malloc(sizeof(list_node_t));
+        node->metric = sum;
+        list_inorder_insert(list, node);
         //TODO free dist
-        printf("\ngraph:\n");
-        print_graph(graph);
-        printf("somma dei cammini minimi: %u\n", sum);
-
         free(line);
         return 0;
     }
     if(strcmp(line, "TopK\n") == 0) {
-        //call TopK function
+        list_node_t *node = list->head;
+        for(int i = 0; i < k; i++){
+            printf("%i ", node->graph_id);
+            node = node->next;
+        }
         free(line);
         return 1;
     }
@@ -258,4 +283,29 @@ void heap_decrease_key(heap_t *heap, int v, unsigned int dist){
         swap_nodes(&heap->data[i], &heap->data[parent(i)]);
         i = parent(i);
     }
+}
+
+void list_inorder_insert(list_t *list, list_node_t *node){
+    list_node_t *cur_node = list->head;
+    node->graph_id = list->cur_id;
+
+    if(cur_node == NULL){
+        node->next = NULL;
+        list->head = node;
+        list->cur_id++;
+        return;
+    }
+
+    while(cur_node->next != NULL){
+        if((cur_node->next)->metric > node->metric){
+            node->next = cur_node->next;
+            cur_node->next = node;
+            list->cur_id++;
+            return;
+        }
+        cur_node = cur_node->next;
+    }
+    node->next = NULL;
+    cur_node->next = node;
+    list->cur_id++;
 }
