@@ -41,7 +41,7 @@ typedef struct{
 }list_t;
 
 //gestione dell'input
-void init_parameters(short *d, short *k);
+int init_parameters(short *d, short *k);
 char manage_operation(short n, short k, list_t *list);
 //gestione dei grafi
 graph_t create_graph(short n);
@@ -59,7 +59,8 @@ void list_inorder_insert(list_t *list, list_node_t *node);
 
 int main(){
     short d, k;
-    init_parameters(&d, &k);
+    if(init_parameters(&d, &k) == 0)
+        exit(EXIT_FAILURE);
 
     list_t list;
     list.graphs_number = 0;
@@ -69,21 +70,27 @@ int main(){
     while(val == 0)
         val = manage_operation(d, k, &list);
 
-    return 0;
+    exit(EXIT_SUCCESS);
 }
 
-void init_parameters(short *d, short *k){
-    char *line = NULL;
-    size_t line_length = 0;
-    getline(&line, &line_length, stdin);
+int init_parameters(short *d, short *k){
+    //12 perché il valore massimo di uno short è 65535, quindi al massimo leggo 11 caratteri da stdin
+    char *line = malloc(12 * sizeof(char));
+    if(fgets(line, 12, stdin) == NULL){
+        fprintf(stderr, "errore nella lettura dei parametri\n");
+        return 0;
+    }
+
     *d = (short)strtol(line, &line, 10);
     *k = (short)strtol(line, &line, 10);
-    free(line);
+    return 1;
 }
 char manage_operation(short n, short k, list_t* list){
-    char *line = NULL;
-    size_t line_length = 0;
-    getline(&line, &line_length, stdin);
+    char *line = malloc(20 * sizeof(char));
+    if(fgets(line, 20, stdin) == NULL){
+        fprintf(stderr, "errore nella lettura di un'istruzione\n");
+        return 1;
+    }
 
     if(strcmp(line, "AggiungiGrafo\n") == 0) {
         graph_t graph = create_graph(n);
@@ -92,12 +99,11 @@ char manage_operation(short n, short k, list_t* list){
 
         for(int i = 0; i < n; i++)
             sum += dist[i];
+        free(dist);
 
         list_node_t *node = malloc(sizeof(list_node_t));
         node->metric = sum;
         list_inorder_insert(list, node);
-        //TODO free dist
-        free(line);
         return 0;
     }
     if(strcmp(line, "TopK\n") == 0) {
@@ -109,10 +115,8 @@ char manage_operation(short n, short k, list_t* list){
             node = node->next;
         }
         printf("\n");
-        free(line);
         return 0;
     }
-    free(line);
     return 1;
 }
 
@@ -125,9 +129,12 @@ graph_t create_graph(short n){
     return graph;
 }
 line_t insert_graph_line(short n){
-    char *input_line = NULL;
-    size_t length = 0;
-    getline(&input_line, &length, stdin);
+    //la lunghezza di un int è al massimo 10 cifre decimali, alle quali aggiungo n-1 virgole e 1 per il carattere nullo
+    char *input_line = malloc(n*11);
+    if(fgets(input_line, n*10, stdin) == NULL){
+        fprintf(stderr, "errore nella lettura di una riga della matrice\n");
+        return NULL;
+    }
 
     line_t line_p = malloc(n * sizeof(int));
 
