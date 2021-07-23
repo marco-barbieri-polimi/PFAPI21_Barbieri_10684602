@@ -42,7 +42,7 @@ typedef struct{
 
 //gestione dell'input
 int init_parameters(short *d, short *k);
-char manage_operation(short n, short k, list_t *list);
+int manage_operation(short n, short k, list_t *list);
 //gestione dei grafi
 graph_t create_graph(short n);
 line_t insert_graph_line(short n);
@@ -59,16 +59,14 @@ void list_inorder_insert(list_t *list, list_node_t *node);
 
 int main(){
     short d, k;
-    if(init_parameters(&d, &k) == 0)
+    if(init_parameters(&d, &k) == -1)
         exit(EXIT_FAILURE);
 
     list_t list;
     list.graphs_number = 0;
     list.head = NULL;
 
-    char val = 0;
-    while(val == 0)
-        val = manage_operation(d, k, &list);
+    while(manage_operation(d, k, &list) == 0){}
 
     exit(EXIT_SUCCESS);
 }
@@ -76,20 +74,22 @@ int main(){
 int init_parameters(short *d, short *k){
     //12 perché il valore massimo di uno short è 65535, quindi al massimo leggo 11 caratteri da stdin
     char *line = malloc(12 * sizeof(char));
-    if(fgets(line, 12, stdin) == NULL){
+    if(fgets(line, 12, stdin) == NULL  && ferror(stdin) != 0){
         fprintf(stderr, "errore nella lettura dei parametri\n");
-        return 0;
+        perror("");
+        return -1;
     }
 
     *d = (short)strtol(line, &line, 10);
     *k = (short)strtol(line, &line, 10);
-    return 1;
+    return 0;
 }
-char manage_operation(short n, short k, list_t* list){
+int manage_operation(short n, short k, list_t* list){
     char *line = malloc(20 * sizeof(char));
-    if(fgets(line, 20, stdin) == NULL){
+    if(fgets(line, 20, stdin) == NULL && ferror(stdin) != 0){
         fprintf(stderr, "errore nella lettura di un'istruzione\n");
-        return 1;
+        perror("");
+        return -1;
     }
 
     if(strcmp(line, "AggiungiGrafo\n") == 0) {
@@ -108,16 +108,22 @@ char manage_operation(short n, short k, list_t* list){
     }
     if(strcmp(line, "TopK\n") == 0) {
         list_node_t *node = list->head;
+
+        if(node == NULL){
+            printf("\n");
+            return 0;
+        }
+
         for(int i = 0; i < k; i++){
-            if(node == NULL)
-                break;
-            printf("%i ", node->graph_id);
+            if(i == k-1 || node->next == NULL) {
+                printf("%hd\n", node->graph_id);
+                return 0;
+            }
+            printf("%hd ", node->graph_id);
             node = node->next;
         }
-        printf("\n");
-        return 0;
     }
-    return 1;
+    return -1;
 }
 
 graph_t create_graph(short n){
@@ -131,8 +137,9 @@ graph_t create_graph(short n){
 line_t insert_graph_line(short n){
     //la lunghezza di un int è al massimo 10 cifre decimali, alle quali aggiungo n-1 virgole e 1 per il carattere nullo
     char *input_line = malloc(n*11);
-    if(fgets(input_line, n*10, stdin) == NULL){
+    if(fgets(input_line, n*10, stdin) == NULL && ferror(stdin) != 0){
         fprintf(stderr, "errore nella lettura di una riga della matrice\n");
+        perror("");
         return NULL;
     }
 
@@ -246,6 +253,7 @@ void min_heapify(heap_t* heap, short i){
 heap_node_t heap_extract_min(heap_t *heap){
     if(heap->heap_size < 1) {
         printf("error: underflow\n");
+        //TODO sistema questo
         return *(volatile heap_node_t*)NULL;
     }
 
