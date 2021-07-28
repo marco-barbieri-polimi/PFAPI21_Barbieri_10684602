@@ -11,54 +11,54 @@
 //strutture grafi
 typedef struct{
     unsigned int **data;
-    short n;
+    int n;
 }graph_t;
 
 typedef unsigned int *line_t;
 
 //strutture heap
 typedef struct{
-    short v;
+    int v;
     unsigned int dist;
 }heap_node_t;
 
 typedef struct{
     heap_node_t *data;
-    short *pos;
-    short heap_size;
+    int *pos;
+    int heap_size;
 }heap_t;
 
 //struttura lista (per la classifica dei grafi)
 typedef struct node{
-    short graph_id;
+    int graph_id;
     unsigned int metric;
     struct node *next;
 }list_node_t;
 
 typedef struct{
-    short graphs_number;
+    int graphs_number;
     list_node_t *head;
 }list_t;
 
 //gestione dell'input
-int init_parameters(short *d, short *k);
-int manage_operation(short n, short k, list_t *list);
+int init_parameters(int *d, int *k);
+int manage_operation(int n, int k, list_t *list);
 //gestione dei grafi
-graph_t create_graph(short n);
-line_t insert_graph_line(short n);
-unsigned int *Dijkstra_shortest_path(graph_t graph);
+graph_t create_graph(int n);
+line_t insert_graph_line(int n);
+unsigned int Dijkstra_shortest_path(graph_t graph);
 //gestione dello heap
 void swap_nodes(heap_node_t *a, heap_node_t *b);
-void swap_heap_pos(heap_t *heap, short a, short b);
-void min_heap_insert(heap_t *heap, short v, unsigned int dist);
-void min_heapify(heap_t* heap, short i);
+void swap_heap_pos(heap_t *heap, int a, int b);
+void min_heap_insert(heap_t *heap, int v, unsigned int dist);
+void min_heapify(heap_t* heap, int i);
 heap_node_t heap_extract_min(heap_t *heap);
-void heap_decrease_key(heap_t *heap, short v, unsigned int dist);
+void heap_decrease_key(heap_t *heap, int v, unsigned int dist);
 //gestione della lista
 void list_inorder_insert(list_t *list, list_node_t *node);
 
 int main(){
-    short d, k;
+    int d, k;
     if(init_parameters(&d, &k) == -1)
         exit(EXIT_FAILURE);
 
@@ -71,42 +71,43 @@ int main(){
     exit(EXIT_SUCCESS);
 }
 
-int init_parameters(short *d, short *k){
-    //12 perché il valore massimo di uno short è 65535, quindi al massimo leggo 11 caratteri da stdin
-    char *line = malloc(12 * sizeof(char));
-    if(fgets(line, 12, stdin) == NULL  && ferror(stdin) != 0){
-        fprintf(stderr, "errore nella lettura dei parametri\n");
-        perror("");
-        return -1;
+int init_parameters(int *d, int *k){
+    //22 perché un int è lungo al massimo 10 caratteri (x2) + un carattere spazio + il carattere \0
+    char *line = calloc(22, sizeof(char));
+    if(fgets(line, 22, stdin) == NULL && ferror(stdin) != 0){
+    	fprintf(stderr, "errore nella lettura dei parametri");
+    	perror("");
+    	return -1;
     }
 
-    *d = (short)strtol(line, &line, 10);
-    *k = (short)strtol(line, &line, 10);
+    char *remain;
+    *d = strtol(line, &remain, 10);
+    *k = strtol(remain, NULL, 10);
+    free(line);
     return 0;
 }
-int manage_operation(short n, short k, list_t* list){
-    char *line = malloc(20 * sizeof(char));
+int manage_operation(int n, int k, list_t* list){
+    char *line = calloc(20, sizeof(char));
     if(fgets(line, 20, stdin) == NULL && ferror(stdin) != 0){
+        free(line);
         fprintf(stderr, "errore nella lettura di un'istruzione\n");
         perror("");
         return -1;
     }
 
     if(strcmp(line, "AggiungiGrafo\n") == 0) {
-        graph_t graph = create_graph(n);
-        unsigned int *dist = Dijkstra_shortest_path(graph);
-        unsigned int sum = 0;
+        free(line);
+        graph_t *graph = malloc(sizeof(graph_t));
+        *graph = create_graph(n);
 
-        for(int i = 0; i < n; i++)
-            sum += dist[i];
-        free(dist);
-
-        list_node_t *node = malloc(sizeof(list_node_t));
-        node->metric = sum;
+        list_node_t *node = (list_node_t *)malloc(sizeof(list_node_t));
+        node->metric = Dijkstra_shortest_path(*graph);
         list_inorder_insert(list, node);
+        free(graph);
         return 0;
     }
     if(strcmp(line, "TopK\n") == 0) {
+    	free(line);
         list_node_t *node = list->head;
 
         if(node == NULL){
@@ -114,101 +115,102 @@ int manage_operation(short n, short k, list_t* list){
             return 0;
         }
 
-        for(int i = 0; i < k; i++){
-            if(i == k-1 || node->next == NULL) {
-                printf("%hd\n", node->graph_id);
-                return 0;
+        for(int i = 0; i < k-1; i++){
+            if(node->next == NULL) {
+                break;
             }
-            printf("%hd ", node->graph_id);
+            printf("%d ", node->graph_id);
             node = node->next;
         }
+
+        printf("%d\n", node->graph_id);
+        return 0;
     }
+    free(line);
     return -1;
 }
 
-graph_t create_graph(short n){
+graph_t create_graph(int n){
     graph_t graph;
     graph.n = n;
-    graph.data = malloc(n * sizeof(int*));
+    graph.data = (unsigned int **)malloc(n * sizeof(unsigned int *));
     for(int i = 0; i < n; i++)
         *(graph.data + i) = insert_graph_line(n);
     return graph;
 }
-line_t insert_graph_line(short n){
-    //la lunghezza di un int è al massimo 10 cifre decimali, alle quali aggiungo n-1 virgole e 1 per il carattere nullo
-    char *input_line = malloc(n*11);
-    if(fgets(input_line, n*10, stdin) == NULL && ferror(stdin) != 0){
+line_t insert_graph_line(int n){
+    //la lunghezza di un int è al massimo 10 cifre (xn) + n-1 virgole + 1 per il carattere nullo
+    char *input_line = malloc(n*11 * sizeof(char));
+    if(fgets(input_line, n*11, stdin) == NULL && ferror(stdin) != 0){
         fprintf(stderr, "errore nella lettura di una riga della matrice\n");
         perror("");
         return NULL;
     }
 
-    line_t line_p = malloc(n * sizeof(int));
+    line_t line = (unsigned int*)malloc(n * sizeof(unsigned int));
 
-    short token_count = 0;
+    int token_count = 0;
     //le linee sono stringhe di interi suddivisi dal carattere "," e finiscono con "\n" che tratto come separatore
     char *delimiters = ",\n";
     //legge la prima stringa di interi (token) della linea
     char *token = strtok(input_line, delimiters);
     while(token != NULL){
         //e fa un parse da string a int
-        *(line_p + token_count) = (unsigned int)strtol(token, NULL, 10);
+        *(line + token_count) = (unsigned int)strtol(token, NULL, 10);
         token_count++;
-        //TODO controllo errori
-        //mi aspetto che element contenga una stringa di numeri, se la stringa è vuota allora c'è un errore.
-        //se element non contiene interi c'è un errore.
-        //mi aspetto di ricevere n numeri interi: se count > n, qualcosa è andato storto.
 
         //legge il token successivo
         token = strtok(NULL, delimiters);
     }
     free(input_line);
-    return line_p;
+    return line;
 }
-unsigned int *Dijkstra_shortest_path(graph_t graph){
-    short n = graph.n;
-    unsigned int *dist = malloc(n * sizeof(unsigned int));
+unsigned int Dijkstra_shortest_path(graph_t graph){
+    int n = graph.n;
+    unsigned int *dist = (unsigned int *)malloc(n * sizeof(unsigned int));
 
     //inizializza lo heap
-    heap_t *heap = malloc(sizeof(heap_t));
-    heap->data = malloc(n * sizeof(heap_node_t));
-    heap->pos = malloc(n * sizeof(short));
-    heap->heap_size = 0;
+    heap_t heap;
+    heap.data = (heap_node_t *)malloc(n * sizeof(heap_node_t));
+    heap.pos = (int *)malloc(n * sizeof(int));
+    heap.heap_size = 0;
 
     //inserisci la sorgente nello heap
-    min_heap_insert(heap, 0, 0);
+    min_heap_insert(&heap, 0, 0);
     dist[0] = 0;
 
     //inserisci tutti i vertici nello heap
-    for(short i = 1; i < n; i++) {
-        min_heap_insert(heap, i, UINT_MAX);
+    for(int i = 1; i < n; i++) {
+        min_heap_insert(&heap, i, UINT_MAX);
         dist[i] = UINT_MAX;
     }
 
     //fintanto che lo heap non è vuoto
-    while(heap->heap_size > 0){
+    while(heap.heap_size > 0){
         //prendi il vertice con distanza minima dalla sorgente
-        heap_node_t node = heap_extract_min(heap);
-        short u = node.v;
+        heap_node_t node = heap_extract_min(&heap);
+        int u = node.v;
         //per tutti i nodi v adiacenti ad u
-        for(short v = 0; v < n; v++){
+        for(int v = 0; v < n; v++){
             //condizione di adiacenza && condizione cammino minimo
             if(graph.data[u][v] != 0 && dist[v] > dist[u] + graph.data[u][v] && dist[u] != UINT_MAX) {
                 //aggiorna la distanza da v con la distanza minima
                 dist[v] = dist[u] + graph.data[u][v];
-                heap_decrease_key(heap, v, dist[v]);
+                heap_decrease_key(&heap, v, dist[v]);
             }
         }
     }
 
     //sistema i vertici non raggiungibili dalla sorgente
-    for(short i = 0; i < n; i++){
+    unsigned int sum = 0;
+    for(int i = 0; i < n; i++){
         if(dist[i] == UINT_MAX)
-            dist[i] = 0;
+            continue;
+        sum += dist[i];
     }
+    free(dist);
 
-    free(heap);
-    return dist;
+    return sum;
 }
 
 void swap_nodes(heap_node_t *a, heap_node_t *b){
@@ -216,11 +218,11 @@ void swap_nodes(heap_node_t *a, heap_node_t *b){
     *a = *b;
     *b = temp;
 }
-void swap_heap_pos(heap_t *heap, short a, short b){
+void swap_heap_pos(heap_t *heap, int a, int b){
     heap->pos[heap->data[a].v] = b;
     heap->pos[heap->data[b].v] = a;
 }
-void min_heap_insert(heap_t *heap, short v, unsigned int dist){
+void min_heap_insert(heap_t *heap, int v, unsigned int dist){
     //inizializza i valori del nodo
     heap_node_t node;
     node.dist = dist;
@@ -233,10 +235,10 @@ void min_heap_insert(heap_t *heap, short v, unsigned int dist){
     heap_decrease_key(heap, heap->heap_size, dist);
     heap->heap_size++;
 }
-void min_heapify(heap_t* heap, short i){
-    short l = left(i);
-    short r = right(i);
-    short min = i;
+void min_heapify(heap_t* heap, int i){
+    int l = left(i);
+    int r = right(i);
+    int min = i;
 
     if (l < heap->heap_size && heap->data[l].dist < heap->data[min].dist)
         min = l;
@@ -273,8 +275,8 @@ heap_node_t heap_extract_min(heap_t *heap){
 
     return min;
 }
-void heap_decrease_key(heap_t *heap, short v, unsigned int dist){
-    short i = heap->pos[v];
+void heap_decrease_key(heap_t *heap, int v, unsigned int dist){
+    int i = heap->pos[v];
     if(dist > heap->data[i].dist) {
         printf("error: new key greater than older\n");
         return;
