@@ -7,7 +7,6 @@
 #define right(x) ((2*x)+2)
 #define parent(x) ((x-1)/2)
 
-
 //strutture grafi
 typedef struct{
     unsigned int **data;
@@ -44,7 +43,8 @@ typedef struct{
 int init_parameters(int *d, int *k);
 int manage_operation(int n, int k, list_t *list);
 //gestione dei grafi
-graph_t create_graph(int n);
+graph_t *create_graph(int n);
+void free_graph(graph_t *graph);
 line_t insert_graph_line(int n);
 unsigned int Dijkstra_shortest_path(graph_t graph);
 //gestione dello heap
@@ -55,18 +55,18 @@ void min_heapify(heap_t* heap, int i);
 heap_node_t heap_extract_min(heap_t *heap);
 void heap_decrease_key(heap_t *heap, int v, unsigned int dist);
 //gestione della lista
-void list_inorder_insert(list_t *list, list_node_t *node);
+list_t *create_list();
+void free_list(list_t *list);
+void list_inorder_insert(list_t *list, unsigned int metric);
 
 int main(){
     int d, k;
     if(init_parameters(&d, &k) == -1)
         exit(EXIT_FAILURE);
 
-    list_t list;
-    list.graphs_number = 0;
-    list.head = NULL;
-
-    while(manage_operation(d, k, &list) == 0){}
+    list_t *list = create_list();
+    while(manage_operation(d, k, list) == 0){}
+    free_list(list);
 
     exit(EXIT_SUCCESS);
 }
@@ -97,13 +97,9 @@ int manage_operation(int n, int k, list_t* list){
 
     if(strcmp(line, "AggiungiGrafo\n") == 0) {
         free(line);
-        graph_t *graph = malloc(sizeof(graph_t));
-        *graph = create_graph(n);
-
-        list_node_t *node = (list_node_t *)malloc(sizeof(list_node_t));
-        node->metric = Dijkstra_shortest_path(*graph);
-        list_inorder_insert(list, node);
-        free(graph);
+        graph_t *graph = create_graph(n);
+        list_inorder_insert(list, Dijkstra_shortest_path(*graph));
+        free_graph(graph);
         return 0;
     }
     if(strcmp(line, "TopK\n") == 0) {
@@ -130,18 +126,27 @@ int manage_operation(int n, int k, list_t* list){
     return -1;
 }
 
-graph_t create_graph(int n){
-    graph_t graph;
-    graph.n = n;
-    graph.data = (unsigned int **)malloc(n * sizeof(unsigned int *));
+graph_t *create_graph(int n){
+    graph_t *graph = (graph_t *)malloc(sizeof(graph_t));
+    graph->n = n;
+    graph->data = (unsigned int **)malloc(n * sizeof(unsigned int *));
     for(int i = 0; i < n; i++)
-        *(graph.data + i) = insert_graph_line(n);
+        *(graph->data + i) = insert_graph_line(n);
     return graph;
+}
+void free_graph(graph_t *graph){
+    int n = graph->n;
+
+    for(int i = 0; i < n; i++)
+        free(graph->data[i]);
+    free(graph->data);
+    free(graph);
 }
 line_t insert_graph_line(int n){
     //la lunghezza di un int è al massimo 10 cifre (xn) + n-1 virgole + 1 per il carattere nullo
     char *input_line = malloc(n*11 * sizeof(char));
     if(fgets(input_line, n*11, stdin) == NULL && ferror(stdin) != 0){
+        free(input_line);
         fprintf(stderr, "errore nella lettura di una riga della matrice\n");
         perror("");
         return NULL;
@@ -203,11 +208,13 @@ unsigned int Dijkstra_shortest_path(graph_t graph){
 
     //sistema i vertici non raggiungibili dalla sorgente
     unsigned int sum = 0;
-    for(int i = 0; i < n; i++){
-        if(dist[i] == UINT_MAX)
+    for(int i = 0; i < n; i++) {
+        if (dist[i] == UINT_MAX)
             continue;
         sum += dist[i];
     }
+    free(heap.data);
+    free(heap.pos);
     free(dist);
 
     return sum;
@@ -290,22 +297,44 @@ void heap_decrease_key(heap_t *heap, int v, unsigned int dist){
     }
 }
 
-void list_inorder_insert(list_t *list, list_node_t *node){
-    list_node_t *head = list->head;
-    node->graph_id = list->graphs_number;
+list_t *create_list(){
+    list_t *new_list = (list_t *)malloc(sizeof(list_t));
+    new_list->head = NULL;
+    new_list->graphs_number = 0;
+    return new_list;
+}
 
-    if(head == NULL || head->metric >= node->metric){
-        node->next = head;
-        list->head = node;
+void free_list(list_t *list){
+    list_node_t *curr = list->head;
+    list_node_t *next;
+
+    while(curr != NULL){
+        next = curr->next;
+        free(curr);
+        curr = next;
+    }
+
+    free(list);
+}
+
+void list_inorder_insert(list_t *list, unsigned int metric){
+    list_node_t *head = list->head;
+    list_node_t *new_node = (list_node_t*)malloc(sizeof(list_node_t));
+    new_node->metric = metric;
+    new_node->graph_id = list->graphs_number;
+
+    if(head == NULL || head->metric >= new_node->metric){
+        new_node->next = head;
+        list->head = new_node;
         list->graphs_number++;
     }else{
         list_node_t *cur_node = head;
 
-        while(cur_node->next != NULL && (cur_node->next)->metric < node->metric)
+        while(cur_node->next != NULL && (cur_node->next)->metric < new_node->metric)
             cur_node = cur_node->next;
 
-        node->next = cur_node->next;
-        cur_node->next = node;
+        new_node->next = cur_node->next;
+        cur_node->next = new_node;
         list->graphs_number++;
     }
 }
