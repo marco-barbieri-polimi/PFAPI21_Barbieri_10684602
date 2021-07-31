@@ -143,21 +143,30 @@ void free_graph(graph_t *graph){
     free(graph);
 }
 line_t insert_graph_line(int n){
-    line_t line = (unsigned int*)malloc(n * sizeof(unsigned int));
+    //la lunghezza di un int è al massimo 10 cifre (xn) + n-1 virgole + 1 per il carattere nullo
+    char *input_line = (char *)calloc(n*11, sizeof(char));
+    if(fgets(input_line, n*11, stdin) == NULL && ferror(stdin) != 0){
+        free(input_line);
+        fprintf(stderr, "errore nella lettura di una riga della matrice\n");
+        perror("");
+        return NULL;
+    }
 
+    line_t line = (unsigned int *)malloc(n * sizeof(unsigned int));
+
+    char *str = input_line;
     for(int i = 0; i < n; i++){
         unsigned int number = 0;
-        int digit;
-
-        digit = getchar();
-        while(digit != ',' && digit != '\n'){
-            number = 10*number + (digit - '0');
-            digit = getchar();
+        while (*str != ',' && *str != '\n'){
+            number = (number * 10) + (*str - '0');
+            str++;
         }
 
         *(line + i) = number;
+        str++;
     }
 
+    free(input_line);
     return line;
 }
 unsigned int Dijkstra_shortest_path(graph_t graph){
@@ -185,7 +194,7 @@ unsigned int Dijkstra_shortest_path(graph_t graph){
         //prendi il vertice con distanza minima dalla sorgente
         heap_node_t node = heap_extract_min(&heap);
         int u = node.v;
-        //per tutti i nodi v adiacenti ad u
+        //per tutti i nodi v adiacenti a u
         for(int v = 0; v < n; v++){
             //condizione di adiacenza && condizione cammino minimo
             if(graph.data[u][v] != 0 && dist[v] > dist[u] + graph.data[u][v] && dist[u] != UINT_MAX) {
