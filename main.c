@@ -143,31 +143,21 @@ void free_graph(graph_t *graph){
     free(graph);
 }
 line_t insert_graph_line(int n){
-    //la lunghezza di un int è al massimo 10 cifre (xn) + n-1 virgole + 1 per il carattere nullo
-    char *input_line = malloc(n*11 * sizeof(char));
-    if(fgets(input_line, n*11, stdin) == NULL && ferror(stdin) != 0){
-        free(input_line);
-        fprintf(stderr, "errore nella lettura di una riga della matrice\n");
-        perror("");
-        return NULL;
-    }
-
     line_t line = (unsigned int*)malloc(n * sizeof(unsigned int));
 
-    int token_count = 0;
-    //le linee sono stringhe di interi suddivisi dal carattere "," e finiscono con "\n" che tratto come separatore
-    char *delimiters = ",\n";
-    //legge la prima stringa di interi (token) della linea
-    char *token = strtok(input_line, delimiters);
-    while(token != NULL){
-        //e fa un parse da string a int
-        *(line + token_count) = (unsigned int)strtol(token, NULL, 10);
-        token_count++;
+    for(int i = 0; i < n; i++){
+        unsigned int number = 0;
+        int digit;
 
-        //legge il token successivo
-        token = strtok(NULL, delimiters);
+        digit = getchar();
+        while(digit != ',' && digit != '\n'){
+            number = 10*number + (digit - '0');
+            digit = getchar();
+        }
+
+        *(line + i) = number;
     }
-    free(input_line);
+
     return line;
 }
 unsigned int Dijkstra_shortest_path(graph_t graph){
