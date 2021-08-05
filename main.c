@@ -8,11 +8,7 @@
 #define parent(x) ((x-1)/2)
 
 //strutture grafi
-typedef struct{
-    unsigned int **data;
-    int n;
-}graph_t;
-
+typedef unsigned int **graph_t;
 typedef unsigned int *line_t;
 
 //strutture heap
@@ -40,12 +36,10 @@ typedef struct{
 }list_t;
 
 //gestione dell'input
-int init_parameters(int *d, int *k);
-int manage_operation(int n, int k, list_t *list);
+int manage_operation(list_t *list);
 //gestione dei grafi
-graph_t *create_graph(int n);
+graph_t *create_graph();
 void free_graph(graph_t *graph);
-line_t insert_graph_line(int n);
 unsigned int Dijkstra_shortest_path(graph_t graph);
 //gestione dello heap
 void swap_nodes(heap_node_t *a, heap_node_t *b);
@@ -59,45 +53,29 @@ list_t *create_list();
 void free_list(list_t *list);
 void list_inorder_insert(list_t *list, unsigned int metric);
 
+int d, k;
+
 int main(){
-    int d, k;
-    if(init_parameters(&d, &k) == -1)
-        exit(EXIT_FAILURE);
+    if(scanf("%d %d\n", &d, &k) == 0)
+        return -1;
 
     list_t *list = create_list();
-    while(manage_operation(d, k, list) == 0){}
+    while(manage_operation(list) == 0){}
     free_list(list);
 
-    exit(EXIT_SUCCESS);
-}
-
-int init_parameters(int *d, int *k){
-    //22 perché un int è lungo al massimo 10 caratteri (x2) + un carattere spazio + il carattere \0
-    char *line = calloc(22, sizeof(char));
-    if(fgets(line, 22, stdin) == NULL && ferror(stdin) != 0){
-    	fprintf(stderr, "errore nella lettura dei parametri");
-    	perror("");
-    	return -1;
-    }
-
-    char *remain;
-    *d = strtol(line, &remain, 10);
-    *k = strtol(remain, NULL, 10);
-    free(line);
     return 0;
 }
-int manage_operation(int n, int k, list_t* list){
+
+int manage_operation(list_t* list){
     char *line = calloc(20, sizeof(char));
     if(fgets(line, 20, stdin) == NULL && ferror(stdin) != 0){
         free(line);
-        fprintf(stderr, "errore nella lettura di un'istruzione\n");
-        perror("");
         return -1;
     }
 
     if(strcmp(line, "AggiungiGrafo\n") == 0) {
         free(line);
-        graph_t *graph = create_graph(n);
+        graph_t *graph = create_graph();
         list_inorder_insert(list, Dijkstra_shortest_path(*graph));
         free_graph(graph);
         return 0;
@@ -126,57 +104,46 @@ int manage_operation(int n, int k, list_t* list){
     return -1;
 }
 
-graph_t *create_graph(int n){
+graph_t *create_graph(){
     graph_t *graph = (graph_t *)malloc(sizeof(graph_t));
-    graph->n = n;
-    graph->data = (unsigned int **)malloc(n * sizeof(unsigned int *));
-    for(int i = 0; i < n; i++)
-        *(graph->data + i) = insert_graph_line(n);
-    return graph;
-}
-void free_graph(graph_t *graph){
-    int n = graph->n;
+    *graph = (unsigned int **)malloc(d * sizeof(unsigned int *));
+    for(int i = 0; i < d; i++){
+        char *input_line = (char *)calloc(d*11, sizeof(char));
+        if(fgets(input_line, d*11, stdin) == NULL && ferror(stdin) != 0){
+            free(input_line);
+            return NULL;
+        }
 
-    for(int i = 0; i < n; i++)
-        free(graph->data[i]);
-    free(graph->data);
-    free(graph);
-}
-line_t insert_graph_line(int n){
-    //la lunghezza di un int è al massimo 10 cifre (xn) + n-1 virgole + 1 per il carattere nullo
-    char *input_line = (char *)calloc(n*11, sizeof(char));
-    if(fgets(input_line, n*11, stdin) == NULL && ferror(stdin) != 0){
-        free(input_line);
-        fprintf(stderr, "errore nella lettura di una riga della matrice\n");
-        perror("");
-        return NULL;
-    }
+        line_t line = (unsigned int *)malloc(d * sizeof(unsigned int));
+        char *str = input_line;
 
-    line_t line = (unsigned int *)malloc(n * sizeof(unsigned int));
+        for(int j = 0; j < d; j++){
+            unsigned int number = 0;
+            while (*str != ',' && *str != '\n')
+                number = (number * 10) + (*str++ - '0');
 
-    char *str = input_line;
-    for(int i = 0; i < n; i++){
-        unsigned int number = 0;
-        while (*str != ',' && *str != '\n'){
-            number = (number * 10) + (*str - '0');
+            line[j] = number;
             str++;
         }
 
-        *(line + i) = number;
-        str++;
+        free(input_line);
+        (*graph)[i] = line;
     }
-
-    free(input_line);
-    return line;
+    return graph;
+}
+void free_graph(graph_t *graph){
+    for(int i = 0; i < d; i++)
+        free((*graph)[i]);
+    free(*graph);
+    free(graph);
 }
 unsigned int Dijkstra_shortest_path(graph_t graph){
-    int n = graph.n;
-    unsigned int *dist = (unsigned int *)malloc(n * sizeof(unsigned int));
+    unsigned int *dist = (unsigned int *)malloc(d * sizeof(unsigned int));
 
     //inizializza lo heap
     heap_t heap;
-    heap.data = (heap_node_t *)malloc(n * sizeof(heap_node_t));
-    heap.pos = (int *)malloc(n * sizeof(int));
+    heap.data = (heap_node_t *)malloc(d * sizeof(heap_node_t));
+    heap.pos = (int *)malloc(d * sizeof(int));
     heap.heap_size = 0;
 
     //inserisci la sorgente nello heap
@@ -184,7 +151,7 @@ unsigned int Dijkstra_shortest_path(graph_t graph){
     dist[0] = 0;
 
     //inserisci tutti i vertici nello heap
-    for(int i = 1; i < n; i++) {
+    for(int i = 1; i < d; i++) {
         min_heap_insert(&heap, i, UINT_MAX);
         dist[i] = UINT_MAX;
     }
@@ -195,11 +162,11 @@ unsigned int Dijkstra_shortest_path(graph_t graph){
         heap_node_t node = heap_extract_min(&heap);
         int u = node.v;
         //per tutti i nodi v adiacenti a u
-        for(int v = 0; v < n; v++){
+        for(int v = 0; v < d; v++){
             //condizione di adiacenza && condizione cammino minimo
-            if(graph.data[u][v] != 0 && dist[v] > dist[u] + graph.data[u][v] && dist[u] != UINT_MAX) {
+            if(graph[u][v] != 0 && dist[v] > dist[u] + graph[u][v] && dist[u] != UINT_MAX) {
                 //aggiorna la distanza da v con la distanza minima
-                dist[v] = dist[u] + graph.data[u][v];
+                dist[v] = dist[u] + graph[u][v];
                 heap_decrease_key(&heap, v, dist[v]);
             }
         }
@@ -207,7 +174,7 @@ unsigned int Dijkstra_shortest_path(graph_t graph){
 
     //sistema i vertici non raggiungibili dalla sorgente
     unsigned int sum = 0;
-    for(int i = 0; i < n; i++) {
+    for(int i = 0; i < d; i++) {
         if (dist[i] == UINT_MAX)
             continue;
         sum += dist[i];
