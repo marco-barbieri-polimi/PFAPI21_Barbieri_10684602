@@ -1,15 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <limits.h>
 
 #define left(x) ((2*x)+1)
 #define right(x) ((2*x)+2)
 #define parent(x) ((x-1)/2)
-
-//strutture grafi
-typedef unsigned int **graph_t;
-typedef unsigned int *line_t;
 
 //strutture heap
 typedef struct{
@@ -22,7 +17,6 @@ typedef struct{
     int *pos;
     int heap_size;
 }heap_t;
-
 //struttura lista (per la classifica dei grafi)
 typedef struct node{
     int graph_id;
@@ -35,12 +29,12 @@ typedef struct{
     list_node_t *head;
 }list_t;
 
+int d, k;
+
 //gestione dell'input
 int manage_operation(list_t *list);
 //gestione dei grafi
-graph_t *create_graph();
-void free_graph(graph_t *graph);
-unsigned int Dijkstra_shortest_path(graph_t graph);
+unsigned int Dijkstra_shortest_path(unsigned int graph[][d]);
 //gestione dello heap
 void swap_nodes(heap_node_t *a, heap_node_t *b);
 void swap_heap_pos(heap_t *heap, int a, int b);
@@ -53,8 +47,6 @@ list_t *create_list();
 void free_list(list_t *list);
 void list_inorder_insert(list_t *list, unsigned int metric);
 
-int d, k;
-
 int main(){
     if(scanf("%d %d\n", &d, &k) == 0)
         return -1;
@@ -62,26 +54,37 @@ int main(){
     list_t *list = create_list();
     while(manage_operation(list) == 0){}
     free_list(list);
-
     return 0;
 }
 
 int manage_operation(list_t* list){
-    char *line = calloc(20, sizeof(char));
-    if(fgets(line, 20, stdin) == NULL && ferror(stdin) != 0){
-        free(line);
-        return -1;
-    }
+    int operation = getchar_unlocked();
+    if(operation == 'A'){
+        for(int i = 0; i < 13; i++)
+            getchar_unlocked();
 
-    if(strcmp(line, "AggiungiGrafo\n") == 0) {
-        free(line);
-        graph_t *graph = create_graph();
-        list_inorder_insert(list, Dijkstra_shortest_path(*graph));
-        free_graph(graph);
+        unsigned int graph[d][d];
+        for(int i = 0; i < d; i++){
+            for(int j = 0; j < d; j++){
+                unsigned int number = 0;
+                int digit;
+
+                digit = getchar_unlocked();
+                while(digit != ',' && digit != '\n'){
+                    number = 10*number + (digit - '0');
+                    digit = getchar_unlocked();
+                }
+
+                graph[i][j] = number;
+            }
+        }
+        list_inorder_insert(list, Dijkstra_shortest_path(graph));
         return 0;
     }
-    if(strcmp(line, "TopK\n") == 0) {
-    	free(line);
+    if(operation == 'T'){
+        for(int i = 0; i < 4; i++)
+            getchar_unlocked();
+
         list_node_t *node = list->head;
 
         if(node == NULL){
@@ -90,9 +93,9 @@ int manage_operation(list_t* list){
         }
 
         for(int i = 0; i < k-1; i++){
-            if(node->next == NULL) {
+            if(node->next == NULL)
                 break;
-            }
+
             printf("%d ", node->graph_id);
             node = node->next;
         }
@@ -100,45 +103,11 @@ int manage_operation(list_t* list){
         printf("%d\n", node->graph_id);
         return 0;
     }
-    free(line);
     return -1;
 }
 
-graph_t *create_graph(){
-    graph_t *graph = (graph_t *)malloc(sizeof(graph_t));
-    *graph = (unsigned int **)malloc(d * sizeof(unsigned int *));
-    for(int i = 0; i < d; i++){
-        char *input_line = (char *)calloc(d*11, sizeof(char));
-        if(fgets(input_line, d*11, stdin) == NULL && ferror(stdin) != 0){
-            free(input_line);
-            return NULL;
-        }
-
-        line_t line = (unsigned int *)malloc(d * sizeof(unsigned int));
-        char *str = input_line;
-
-        for(int j = 0; j < d; j++){
-            unsigned int number = 0;
-            while (*str != ',' && *str != '\n')
-                number = (number * 10) + (*str++ - '0');
-
-            line[j] = number;
-            str++;
-        }
-
-        free(input_line);
-        (*graph)[i] = line;
-    }
-    return graph;
-}
-void free_graph(graph_t *graph){
-    for(int i = 0; i < d; i++)
-        free((*graph)[i]);
-    free(*graph);
-    free(graph);
-}
-unsigned int Dijkstra_shortest_path(graph_t graph){
-    unsigned int *dist = (unsigned int *)malloc(d * sizeof(unsigned int));
+unsigned int Dijkstra_shortest_path(unsigned int graph[][d]){
+    unsigned int dist[d];
 
     //inizializza lo heap
     heap_t heap;
@@ -181,7 +150,6 @@ unsigned int Dijkstra_shortest_path(graph_t graph){
     }
     free(heap.data);
     free(heap.pos);
-    free(dist);
 
     return sum;
 }
@@ -226,12 +194,6 @@ void min_heapify(heap_t* heap, int i){
     }
 }
 heap_node_t heap_extract_min(heap_t *heap){
-    if(heap->heap_size < 1) {
-        printf("error: underflow\n");
-        //TODO sistema questo
-        return *(volatile heap_node_t*)NULL;
-    }
-
     //estrai minimo
     heap_node_t min = heap->data[0];
 
@@ -250,10 +212,6 @@ heap_node_t heap_extract_min(heap_t *heap){
 }
 void heap_decrease_key(heap_t *heap, int v, unsigned int dist){
     int i = heap->pos[v];
-    if(dist > heap->data[i].dist) {
-        printf("error: new key greater than older\n");
-        return;
-    }
 
     heap->data[i].dist = dist;
     while(i > 0 && heap->data[parent(i)].dist > heap->data[i].dist){
@@ -269,7 +227,6 @@ list_t *create_list(){
     new_list->graphs_number = 0;
     return new_list;
 }
-
 void free_list(list_t *list){
     list_node_t *curr = list->head;
     list_node_t *next;
@@ -282,22 +239,24 @@ void free_list(list_t *list){
 
     free(list);
 }
-
 void list_inorder_insert(list_t *list, unsigned int metric){
     list_node_t *head = list->head;
     list_node_t *new_node = (list_node_t*)malloc(sizeof(list_node_t));
     new_node->metric = metric;
     new_node->graph_id = list->graphs_number;
 
-    if(head == NULL || head->metric >= new_node->metric){
+    if(head == NULL || head->metric > new_node->metric){
         new_node->next = head;
         list->head = new_node;
         list->graphs_number++;
     }else{
         list_node_t *cur_node = head;
 
-        while(cur_node->next != NULL && (cur_node->next)->metric < new_node->metric)
+        int count = 0;
+        while(cur_node->next != NULL && (cur_node->next)->metric <= new_node->metric && count <= k){
             cur_node = cur_node->next;
+            count++;
+        }
 
         new_node->next = cur_node->next;
         cur_node->next = new_node;
