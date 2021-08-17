@@ -8,7 +8,7 @@
 
 //strutture heap
 typedef struct{
-    int v;
+    int vertex_id;
     unsigned int dist;
 }heap_node_t;
 
@@ -129,7 +129,7 @@ unsigned int Dijkstra_shortest_path(unsigned int graph[][d]){
     while(heap.heap_size > 0){
         //prendi il vertice con distanza minima dalla sorgente
         heap_node_t node = heap_extract_min(&heap);
-        int u = node.v;
+        int u = node.vertex_id;
         //per tutti i nodi v adiacenti a u
         for(int v = 0; v < d; v++){
             //condizione di adiacenza && condizione cammino minimo
@@ -141,16 +141,16 @@ unsigned int Dijkstra_shortest_path(unsigned int graph[][d]){
         }
     }
 
-    //sistema i vertici non raggiungibili dalla sorgente
+    //computa la somma dei cammini minimi
     unsigned int sum = 0;
     for(int i = 0; i < d; i++) {
         if (dist[i] == UINT_MAX)
             continue;
         sum += dist[i];
     }
+
     free(heap.data);
     free(heap.pos);
-
     return sum;
 }
 
@@ -160,14 +160,14 @@ void swap_nodes(heap_node_t *a, heap_node_t *b){
     *b = temp;
 }
 void swap_heap_pos(heap_t *heap, int a, int b){
-    heap->pos[heap->data[a].v] = b;
-    heap->pos[heap->data[b].v] = a;
+    heap->pos[heap->data[a].vertex_id] = b;
+    heap->pos[heap->data[b].vertex_id] = a;
 }
 void min_heap_insert(heap_t *heap, int v, unsigned int dist){
     //inizializza i valori del nodo
     heap_node_t node;
     node.dist = dist;
-    node.v = v;
+    node.vertex_id = v;
 
     //inserisci il nodo nello heap
     heap->data[heap->heap_size] = node;
@@ -203,8 +203,8 @@ heap_node_t heap_extract_min(heap_t *heap){
     heap->data[0] = last;
 
     //swap node positions
-    heap->pos[min.v] = heap->heap_size;
-    heap->pos[last.v] = 0;
+    heap->pos[min.vertex_id] = heap->heap_size;
+    heap->pos[last.vertex_id] = 0;
 
     min_heapify(heap, 0);
 
@@ -253,13 +253,19 @@ void list_inorder_insert(list_t *list, unsigned int metric){
         list_node_t *cur_node = head;
 
         int count = 0;
-        while(cur_node->next != NULL && (cur_node->next)->metric <= new_node->metric && count <= k){
+        while(cur_node->next != NULL && (cur_node->next)->metric <= new_node->metric){
+            if(count >= k){
+                free(new_node);
+                list->graphs_number++;
+                return;
+            }
             cur_node = cur_node->next;
             count++;
         }
 
         new_node->next = cur_node->next;
         cur_node->next = new_node;
+
         list->graphs_number++;
     }
 }
